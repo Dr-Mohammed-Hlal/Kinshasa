@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Risk Dashboard - Dingi Dingi & Maziba</title>
+    
+    <!-- Load Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Load Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+    <!-- Styling -->
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        .box { width: 45%; min-width: 400px; }
+        #map { width: 100%; height: 500px; border: 1px solid #ccc; }
+        #legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            text-align: left;
+            font-size: 14px;
+            margin-top: 10px;
+            display: inline-block;
+            position: relative;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flood Risk Dashboard - Dingi Dingi & Maziba</h1>
+
+    <div class="container">
+        <!-- Radar Chart -->
+        <div class="box">
+            <h2>Flood Risk Factors (Maziba & Dingi Dingi)</h2>
+            <canvas id="radarChart"></canvas>
+        </div>
+
+        <!-- Interactive Map -->
+        <div class="box">
+            <h2>Flood Risk Map</h2>
+            <div id="map"></div>
+            <div id="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FF6347;"></div> High Risk
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FFFF00;"></div> Medium Risk
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #90EE90;"></div> Low Risk
+                </div>
+            </div>
+        </div>
+
+        <!-- Doughnut Chart -->
+        <div class="box">
+            <h2>Flood Risk Distribution</h2>
+            <canvas id="doughnutChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the map centered on Dingi Dingi & Maziba
+        var map = L.map('map').setView([-4.4, 15.35], 14); // Adjusted for Kinshasa
+
+        // Add OpenStreetMap base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Neighborhood locations with risk levels
+        var riskLocations = [
+            { name: "Maziba", coords: [-4.393063, 15.363326], risk: "High", color: "#FF6347" },
+            { name: "Maziba", coords: [-4.395537,  15.363328], risk: "High", color: "#FF6347" }
+        ];
+
+        // Add markers for each neighborhood
+        riskLocations.forEach(function(location) {
+            L.circleMarker(location.coords, {
+                radius: 10,
+                color: location.color,
+                fillColor: location.color,
+                fillOpacity: 0.8
+            }).addTo(map)
+            .bindPopup(`<b>${location.name}</b><br>Flood Risk: ${location.risk}`);
+        });
+        // Neighborhood locations with risk levels 2
+        var riskLocations = [
+            { name: "Maziba", coords: [-4.387822, 15.363333], risk: "High", color: "#FF6347" },
+            { name: "Dingi Dingi", coords: [-4.404835,  15.35966], risk: "Medium", color: "#FFFF00" }
+        ];
+
+        // Add markers for each neighborhood 2
+        riskLocations.forEach(function(location) {
+            L.circleMarker(location.coords, {
+                radius: 10,
+                color: location.color,
+                fillColor: location.color,
+                fillOpacity: 0.8
+            }).addTo(map)
+            .bindPopup(`<b>${location.name}</b><br>Flood Risk: ${location.risk}`);
+        });
+        // Neighborhood locations with risk levels 3
+        var riskLocations = [
+            { name: "Maziba", coords: [-4.398154, 15.361042], risk: "High", color: "#FF6347" },
+            { name: "Dingi Dingi", coords: [-4.402237, 15.361749], risk: "High", color: "#FF6347" }
+        ];
+
+        // Add markers for each neighborhood 3
+        riskLocations.forEach(function(location) {
+            L.circleMarker(location.coords, {
+                radius: 10,
+                color: location.color,
+                fillColor: location.color,
+                fillOpacity: 0.8
+            }).addTo(map)
+            .bindPopup(`<b>${location.name}</b><br>Flood Risk: ${location.risk}`);
+        });
+
+        // Fetch Microsoft Open Building Data (GeoJSON Format)
+        var buildingDataUrl = "https://minedbuildings.blob.core.windows.net/global-buildings/democratic_republic_of_the_congo.geojson";
+
+        fetch(buildingDataUrl)
+            .then(response => response.json())
+            .then(data => {
+                console.log("Buildings Loaded:", data.features.length);
+
+                // Add each building as a polygon
+                L.geoJSON(data, {
+                    style: function(feature) {
+                        var coords = feature.geometry.coordinates[0][0]; // First point of building
+                        var lat = coords[1], lon = coords[0];
+
+                        // Determine flood risk level
+                        var riskColor = "#90EE90"; // Default: Low Risk
+                        if (lat > -4.41 && lat < -4.39 && lon > 15.34 && lon < 15.36) {
+                            riskColor = "#FFFF00"; // Medium Risk (Maziba)
+                        }
+                        if (lat > -4.39 && lat < -4.37 && lon > 15.36 && lon < 15.38) {
+                            riskColor = "#FF6347"; // High Risk (Dingi Dingi)
+                        }
+                        if (lat > -4.39 && lat < -4.386791 && lon > 15.363520 && lon < 15.37) {
+                            riskColor = "#FF6347"; // High Risk (Dingi Dingi)
+                        }
+                        return { color: riskColor, weight: 1, fillOpacity: 0.5 };
+                    }
+                }).addTo(map);
+            })
+            .catch(error => console.error("Error loading buildings:", error));
+
+        // Radar chart data and configuration
+        var ctx = document.getElementById('radarChart').getContext('2d');
+        var radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ["Rainfall", "River Water Level", "Soil Moisture", "Urban Drainage", "Vegetation", "Slope", "Topography"],
+                datasets: [
+                    {
+                        label: "Maziba",
+                        data: [85, 90, 70, 60, 50, 90, 85],
+                        fill: true,
+                        backgroundColor: "rgba(255, 99, 132, 0.2)",
+                        borderColor: "rgb(255, 99, 132)",
+                        pointBackgroundColor: "rgb(255, 99, 132)",
+                    },
+                    {
+                        label: "Dingi Dingi",
+                        data: [70, 75, 80, 65, 55, 77, 80],
+                        fill: true,
+                        backgroundColor: "rgba(54, 162, 235, 0.2)",
+                        borderColor: "rgb(54, 162, 235)",
+                        pointBackgroundColor: "rgb(54, 162, 235)",
+                    }
+                ]
+            },
+            options: {
+                scale: {
+                    ticks: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+
+        // Doughnut Chart (Flood Risk Distribution)
+        var doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+        var doughnutChart = new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ["High Risk", "Medium Risk", "Low Risk"],
+                datasets: [{
+                    data: [45, 35, 20],
+                    backgroundColor: ["#FF6347", "#FFFF00", "#90EE90"]
+                }]
+            }
+        });
+
+    </script>
+
+    <div class="credit">
+        Credit by: Center of Urban Systems
+    </div>
+</body>
+</html>
